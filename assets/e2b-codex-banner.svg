@@ -1,0 +1,100 @@
+<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="48" x2="1080" y2="372" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#111C2F"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="226" y1="92" x2="978" y2="330" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#121B2D"/>
+      <stop offset="1" stop-color="#18253D"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="268" y1="124" x2="934" y2="296" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#22C55E"/>
+    </linearGradient>
+    <linearGradient id="cubeFaceA" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#3DD5F3"/>
+      <stop offset="1" stop-color="#23B3D6"/>
+    </linearGradient>
+    <linearGradient id="cubeFaceB" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#1F8FB5"/>
+      <stop offset="1" stop-color="#176A8C"/>
+    </linearGradient>
+    <linearGradient id="cubeFaceC" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#6EE7B7"/>
+      <stop offset="1" stop-color="#22C55E"/>
+    </linearGradient>
+    <filter id="shadow" x="186" y="82" width="830" height="266" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="10"/>
+      <feGaussianBlur stdDeviation="20"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0156863 0 0 0 0 0.0470588 0 0 0 0 0.121569 0 0 0 0.38 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="420" rx="28" fill="url(#bg)"/>
+
+  <g opacity="0.2">
+    <path d="M110 84H1090" stroke="url(#accent)" stroke-width="1"/>
+    <path d="M110 336H1090" stroke="url(#accent)" stroke-width="1"/>
+    <path d="M190 48V372" stroke="#2B3A56" stroke-width="1"/>
+    <path d="M1010 48V372" stroke="#2B3A56" stroke-width="1"/>
+  </g>
+
+  <g opacity="0.22" fill="#7DD3FC">
+    <circle cx="126" cy="96" r="2"/>
+    <circle cx="156" cy="126" r="2"/>
+    <circle cx="108" cy="154" r="2"/>
+    <circle cx="1074" cy="112" r="2"/>
+    <circle cx="1048" cy="146" r="2"/>
+    <circle cx="1090" cy="174" r="2"/>
+    <circle cx="101" cy="286" r="2"/>
+    <circle cx="142" cy="316" r="2"/>
+    <circle cx="1087" cy="288" r="2"/>
+    <circle cx="1058" cy="324" r="2"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="226" y="92" width="748" height="226" rx="24" fill="url(#panel)" stroke="#2A3C5F"/>
+  </g>
+
+  <rect x="256" y="122" width="204" height="166" rx="20" fill="#0E1727" stroke="#243551"/>
+  <rect x="276" y="142" width="164" height="18" rx="9" fill="#172338"/>
+  <circle cx="295" cy="151" r="4" fill="#38BDF8"/>
+  <circle cx="311" cy="151" r="4" fill="#22C55E"/>
+  <circle cx="327" cy="151" r="4" fill="#F59E0B"/>
+
+  <path d="M302 198L328 224L302 250" stroke="#7DD3FC" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="346" y="244" width="48" height="10" rx="5" fill="#6EE7B7"/>
+  <rect x="346" y="208" width="62" height="10" rx="5" fill="#2A3C5F"/>
+  <rect x="346" y="190" width="42" height="10" rx="5" fill="#2A3C5F"/>
+
+  <g>
+    <path d="M584 138L632 164V217L584 243L536 217V164L584 138Z" fill="url(#cubeFaceA)"/>
+    <path d="M584 138L632 164L584 190L536 164L584 138Z" fill="#8BE9FC"/>
+    <path d="M632 164V217L584 243V190L632 164Z" fill="url(#cubeFaceB)"/>
+    <path d="M536 164V217L584 243V190L536 164Z" fill="url(#cubeFaceC)"/>
+    <path d="M584 156L614 173V205L584 222L554 205V173L584 156Z" stroke="#E0FBFF" stroke-width="4"/>
+  </g>
+
+  <path d="M664 192H730" stroke="url(#accent)" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="748" cy="192" r="10" fill="#38BDF8"/>
+  <path d="M758 192H818" stroke="url(#accent)" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="836" cy="192" r="10" fill="#22C55E"/>
+  <path d="M846 192H904" stroke="url(#accent)" stroke-width="6" stroke-linecap="round"/>
+
+  <g>
+    <rect x="858" y="142" width="78" height="100" rx="16" fill="#0E1727" stroke="#24405A"/>
+    <rect x="874" y="160" width="46" height="8" rx="4" fill="#38BDF8"/>
+    <rect x="874" y="178" width="34" height="8" rx="4" fill="#2A3C5F"/>
+    <rect x="874" y="212" width="28" height="8" rx="4" fill="#6EE7B7"/>
+    <path d="M884 201L897 188L910 201" stroke="#E0FBFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <text x="502" y="287" fill="#F7FAFC" font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="56" font-weight="700" letter-spacing="-0.03em">e2b-codex</text>
+  <text x="504" y="325" fill="#9FB4D0" font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22" font-weight="500">Build once. Spin sandboxes fast. Talk to Codex over websocket.</text>
+</svg>
