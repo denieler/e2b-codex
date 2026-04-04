@@ -193,6 +193,7 @@ E2B_TEMPLATE_ID=<template-id> doppler run -- npm run example:prompt -- "Hello"
 
 At sandbox startup, the runtime:
 
+- logs Codex into the sandbox using `OPENAI_API_KEY`
 - writes a websocket capability token into the sandbox
 - starts `codex app-server` as an E2B background process
 - waits for it to stay alive

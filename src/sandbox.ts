@@ -63,6 +63,16 @@ async function ensureAppServerRunning(
     timeoutMs: 10_000,
   });
 
+  // Codex CLI 0.118.0 loses the auth header when it falls back from websocket
+  // streaming to HTTPS while using API-key auth directly. Logging in once inside
+  // the sandbox makes app-server use the stored auth path instead.
+  await sandbox.commands.run(`sh -lc 'printenv OPENAI_API_KEY | codex login --with-api-key'`, {
+    envs: {
+      OPENAI_API_KEY: options.openAiApiKey,
+    },
+    timeoutMs: 20_000,
+  });
+
   const existing = await sandbox.commands.run(
     `bash -lc 'ps -ef | grep "${processPattern}" || true'`,
     {
