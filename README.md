@@ -2,6 +2,8 @@
 
 Use a shared E2B template with Codex preinstalled, then create fresh sandboxes from that template and talk to `codex app-server` over websocket.
 
+![e2b-codex banner](https://raw.githubusercontent.com/denieler/e2b-codex/main/assets/e2b-codex-banner.svg)
+
 ![e2b-codex banner](./assets/e2b-codex-banner.svg)
 
 This project covers two jobs:
