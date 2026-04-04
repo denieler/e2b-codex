@@ -45,7 +45,7 @@ What this does:
 ### Create a ready sandbox in code
 
 ```ts
-import { createReadyCodexSandbox } from "@denieler/e2e-codex";
+import { createReadyCodexSandbox } from "@denieler/e2b-codex";
 
 const ready = await createReadyCodexSandbox({
   e2bApiKey: process.env.E2B_API_KEY!,
@@ -62,10 +62,25 @@ The returned object includes:
 - `authToken`
 - `workspaceRoot`
 
+### Connect to an existing sandbox in code
+
+```ts
+import { connectCodexSandbox } from "@denieler/e2b-codex";
+
+const ready = await connectCodexSandbox({
+  e2bApiKey: process.env.E2B_API_KEY!,
+  sandboxId: "sandbox-id",
+  openAiApiKey: process.env.OPENAI_API_KEY!,
+  userId: "user-123",
+});
+```
+
+Use this when you already persisted `sandboxId` and want to reconnect to the same sandbox instead of creating a new one.
+
 ### Connect to Codex over websocket
 
 ```ts
-import { connectCodexClient } from "@denieler/e2e-codex";
+import { connectCodexClient } from "@denieler/e2b-codex";
 
 const client = await connectCodexClient(ready);
 ```
@@ -113,7 +128,7 @@ If your websocket connection drops, reconnect using the same `websocketUrl` and 
 If you want one fresh sandbox and one prompt, use:
 
 ```ts
-import { createReadyCodexSandbox, runPrompt } from "@denieler/e2e-codex";
+import { createReadyCodexSandbox, runPrompt } from "@denieler/e2b-codex";
 
 const sandbox = await createReadyCodexSandbox({
   e2bApiKey: process.env.E2B_API_KEY!,

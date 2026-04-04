@@ -4,9 +4,8 @@ import { Sandbox } from "e2b";
 
 import { CodexAppServerClient } from "./codex-app-server.js";
 
-export type CreateCodexSandboxOptions = {
+export type CodexSandboxOptions = {
   e2bApiKey: string;
-  templateId: string;
   openAiApiKey: string;
   userId: string;
   timeoutMs?: number;
@@ -14,6 +13,17 @@ export type CreateCodexSandboxOptions = {
   port?: number;
   workspaceRoot?: string;
   metadata?: Record<string, string>;
+};
+
+export type CreateCodexSandboxOptions = CodexSandboxOptions & {
+  templateId: string;
+};
+
+export type ConnectCodexSandboxOptions = Omit<
+  CodexSandboxOptions,
+  "allowInternetAccess" | "metadata"
+> & {
+  sandboxId: string;
 };
 
 export type ReadyCodexSandbox = {
@@ -39,7 +49,7 @@ function getTokenFilePath() {
 
 async function ensureAppServerRunning(
   sandbox: Sandbox,
-  options: Pick<CreateCodexSandboxOptions, "openAiApiKey" | "port" | "workspaceRoot" | "userId">,
+  options: Pick<CodexSandboxOptions, "openAiApiKey" | "port" | "workspaceRoot" | "userId">,
 ) {
   const port = options.port ?? 4571;
   const workspaceRoot = options.workspaceRoot ?? "/workspace";
@@ -107,6 +117,37 @@ export async function createReadyCodexSandbox(
       ...(options.metadata ?? {}),
     },
   });
+
+  await ensureAppServerRunning(sandbox, {
+    openAiApiKey: options.openAiApiKey,
+    port,
+    workspaceRoot,
+    userId: options.userId,
+  });
+
+  return {
+    sandbox,
+    sandboxId: sandbox.sandboxId,
+    websocketUrl: `wss://${sandbox.getHost(port)}`,
+    authToken: createAppServerToken(options.userId),
+    port,
+    workspaceRoot,
+  };
+}
+
+export async function connectCodexSandbox(
+  options: ConnectCodexSandboxOptions,
+): Promise<ReadyCodexSandbox> {
+  const port = options.port ?? 4571;
+  const workspaceRoot = options.workspaceRoot ?? "/workspace";
+
+  const sandbox = await Sandbox.connect(options.sandboxId, {
+    apiKey: options.e2bApiKey,
+  });
+
+  if (options.timeoutMs) {
+    await sandbox.setTimeout(options.timeoutMs);
+  }
 
   await ensureAppServerRunning(sandbox, {
     openAiApiKey: options.openAiApiKey,
