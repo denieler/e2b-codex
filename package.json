@@ -21,6 +21,7 @@
     "build": "tsc -p tsconfig.build.json",
     "build:template": "tsx scripts/build-template.ts",
     "clean": "rm -rf dist",
+    "publish:npm": "doppler run -- env NPM_TOKEN=\"$NPM_PUBLISH_TOKEN\" npm publish",
     "test:smoke": "tsx examples/run-prompt.ts",
     "prepublishOnly": "npm run typecheck && npm run build",
     "typecheck": "tsc --noEmit"
