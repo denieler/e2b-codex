@@ -27,10 +27,10 @@ npm install @denieler/e2b-codex
 
 ### Run one prompt
 
-If you just want to verify the full flow, run:
+If you want to run the checked-in smoke test, run:
 
 ```bash
-E2B_TEMPLATE_ID=<template-id> doppler run -- npm run example:prompt -- "Reply with exactly: test-ok"
+E2B_TEMPLATE_ID=<template-id> doppler run -- npm run test:smoke
 ```
 
 What this does:
@@ -38,9 +38,8 @@ What this does:
 1. Creates a new sandbox from `E2B_TEMPLATE_ID`
 2. Starts `codex app-server` inside the sandbox
 3. Opens an authenticated websocket connection
-4. Starts a Codex thread
-5. Sends one prompt
-6. Returns the final reply
+4. Sends two turns on the same thread, both involving tool calls
+5. Fails if any reply is not the expected final text
 
 ### Create a ready sandbox in code
 
@@ -186,8 +185,22 @@ Codex is installed at template build time, not at sandbox startup.
 npm install
 npm run typecheck
 doppler run -- npm run build:template
-E2B_TEMPLATE_ID=<template-id> doppler run -- npm run example:prompt -- "Hello"
+E2B_TEMPLATE_ID=<template-id> doppler run -- npm run test:smoke
 ```
+
+## Verification
+
+After any substantial runtime, websocket, or sandbox change, run:
+
+```bash
+npm run typecheck
+npm run build
+E2B_TEMPLATE_ID=<template-id> doppler run -- npm run test:smoke
+```
+
+The smoke test covers both of these paths:
+
+- direct websocket usage with `thread/start` plus two `turn/start` calls on the same thread, both involving tool calls
 
 ## Runtime Design
 

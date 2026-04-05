@@ -1,6 +1,6 @@
 {
   "name": "@denieler/e2b-codex",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Build and use E2B sandboxes with Codex preinstalled and codex app-server ready over websocket.",
   "license": "MIT",
   "type": "module",
@@ -21,15 +21,17 @@
     "build": "tsc -p tsconfig.build.json",
     "build:template": "tsx scripts/build-template.ts",
     "clean": "rm -rf dist",
-    "example:prompt": "tsx examples/run-prompt.ts",
+    "test:smoke": "tsx examples/run-prompt.ts",
     "prepublishOnly": "npm run typecheck && npm run build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "e2b": "^2.18.0"
+    "e2b": "^2.18.0",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.19.2",
     "typescript": "^5.8.2"
   }

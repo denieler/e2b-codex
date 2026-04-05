@@ -1,3 +1,5 @@
+import WebSocket from "ws";
+
 type JsonRpcError = {
   code: number;
   message: string;
@@ -15,15 +17,6 @@ type NotificationHandler = (
   message: Required<Pick<JsonRpcMessage, "method">> & JsonRpcMessage,
 ) => void;
 
-type ServerWebSocketConstructor = {
-  new (
-    url: string,
-    options?: {
-      headers?: Record<string, string>;
-    },
-  ): WebSocket;
-};
-
 export class CodexAppServerClient {
   private readonly socket: WebSocket;
   private readonly pending = new Map<
@@ -38,22 +31,19 @@ export class CodexAppServerClient {
 
   private constructor(socket: WebSocket) {
     this.socket = socket;
-    this.socket.addEventListener("message", (event) => {
-      this.handleIncomingMessage(typeof event.data === "string" ? event.data : "");
+    this.socket.on("message", (data) => {
+      this.handleIncomingMessage(typeof data === "string" ? data : data.toString("utf8"));
     });
-    this.socket.addEventListener("error", (event) => {
-      const error =
-        event instanceof ErrorEvent ? event.error : new Error("Codex websocket error");
+    this.socket.on("error", (error) => {
       this.rejectAllPending(error);
     });
-    this.socket.addEventListener("close", () => {
+    this.socket.on("close", () => {
       this.rejectAllPending(new Error("Codex websocket connection closed."));
     });
   }
 
   static async connect(url: string, authToken?: string) {
-    const WebSocketConstructor = WebSocket as unknown as ServerWebSocketConstructor;
-    const socket = new WebSocketConstructor(url, {
+    const socket = new WebSocket(url, {
       headers: authToken
         ? {
             Authorization: `Bearer ${authToken}`,
@@ -62,12 +52,8 @@ export class CodexAppServerClient {
     });
 
     await new Promise<void>((resolve, reject) => {
-      socket.addEventListener("open", () => resolve(), { once: true });
-      socket.addEventListener(
-        "error",
-        () => reject(new Error("Unable to open Codex websocket.")),
-        { once: true },
-      );
+      socket.once("open", () => resolve());
+      socket.once("error", () => reject(new Error("Unable to open Codex websocket.")));
     });
 
     return new CodexAppServerClient(socket);

@@ -224,14 +224,21 @@ export async function runPrompt(options: {
       throw new Error("Codex did not return a thread id.");
     }
 
-    const replyParts: string[] = [];
+    const agentMessageDeltas = new Map<string, string>();
+    let fallbackReply = "";
+    let lastAgentReply = "";
 
     await new Promise<void>((resolve, reject) => {
       const unsubscribe = client.onNotification((message) => {
         const params = (message.params ?? {}) as Record<string, unknown>;
 
         if (message.method === "item/agentMessage/delta" && typeof params.delta === "string") {
-          replyParts.push(params.delta);
+          const itemId = typeof params.itemId === "string" ? params.itemId : "__fallback__";
+          const nextText = `${agentMessageDeltas.get(itemId) ?? ""}${params.delta}`;
+          agentMessageDeltas.set(itemId, nextText);
+          if (itemId === "__fallback__") {
+            fallbackReply = nextText;
+          }
           return;
         }
 
@@ -246,8 +253,14 @@ export async function runPrompt(options: {
             )
             .join("")
             .trim();
-          if (item.type === "agentMessage" && completedText && replyParts.length === 0) {
-            replyParts.push(completedText);
+          if (item.type === "agentMessage") {
+            const itemId = typeof item.id === "string" ? item.id : "__fallback__";
+            const replyText = agentMessageDeltas.get(itemId) ?? completedText;
+            if (replyText) {
+              lastAgentReply = replyText.trim();
+            } else if (completedText) {
+              lastAgentReply = completedText;
+            }
           }
           return;
         }
@@ -303,7 +316,7 @@ export async function runPrompt(options: {
 
     return {
       threadId,
-      reply: replyParts.join("").trim(),
+      reply: lastAgentReply || fallbackReply.trim(),
     };
   } finally {
     client.close();
