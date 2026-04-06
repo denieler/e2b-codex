@@ -65,13 +65,16 @@ async function ensureAppServerRunning(
 
   // Codex CLI 0.118.0 loses the auth header when it falls back from websocket
   // streaming to HTTPS while using API-key auth directly. Logging in once inside
-  // the sandbox makes app-server use the stored auth path instead.
-  await sandbox.commands.run(`sh -lc 'printenv OPENAI_API_KEY | codex login --with-api-key'`, {
-    envs: {
-      OPENAI_API_KEY: options.openAiApiKey,
-    },
+  // the sandbox makes app-server use the stored auth path instead. Feed the key
+  // over stdin so it does not persist as a sandbox-wide env var or process arg.
+  const login = await sandbox.commands.run(`codex login --with-api-key`, {
+    background: true,
+    stdin: true,
     timeoutMs: 20_000,
   });
+  await sandbox.commands.sendStdin(login.pid, `${options.openAiApiKey}\n`);
+  await sandbox.commands.closeStdin(login.pid);
+  await login.wait();
 
   const existing = await sandbox.commands.run(
     `bash -lc 'ps -ef | grep "${processPattern}" || true'`,
@@ -87,9 +90,6 @@ async function ensureAppServerRunning(
     `codex app-server --listen ws://0.0.0.0:${port} --ws-auth capability-token --ws-token-file ${tokenFile}`,
     {
       background: true,
-      envs: {
-        OPENAI_API_KEY: options.openAiApiKey,
-      },
       timeoutMs: 15_000,
     },
   );
@@ -118,9 +118,6 @@ export async function createReadyCodexSandbox(
     apiKey: options.e2bApiKey,
     timeoutMs: options.timeoutMs ?? 300_000,
     allowInternetAccess: options.allowInternetAccess ?? true,
-    envs: {
-      OPENAI_API_KEY: options.openAiApiKey,
-    },
     metadata: {
       product: "e2b-codex",
       userId: options.userId,
