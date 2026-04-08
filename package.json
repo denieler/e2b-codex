@@ -1,9 +1,12 @@
 {
   "name": "@denieler/e2b-codex",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Build and use E2B sandboxes with Codex preinstalled and codex app-server ready over websocket.",
   "license": "MIT",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -18,7 +21,7 @@
     "assets"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
     "build:template": "tsx scripts/build-template.ts",
     "clean": "rm -rf dist",
     "publish:npm": "doppler run -- env NPM_TOKEN=\"$NPM_PUBLISH_TOKEN\" npm publish",
