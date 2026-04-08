@@ -20,7 +20,7 @@ npm install @denieler/e2b-codex
 ### What you need
 
 - `E2B_API_KEY`
-- `OPENAI_API_KEY`
+- `OPENAI_PROXY_TOKEN`
 - `E2B_TEMPLATE_ID`
 
 `E2B_TEMPLATE_ID` must point to a template that already has Codex installed.
@@ -36,10 +36,22 @@ E2B_TEMPLATE_ID=<template-id> doppler run -- npm run test:smoke
 What this does:
 
 1. Creates a new sandbox from `E2B_TEMPLATE_ID`
-2. Starts `codex app-server` inside the sandbox
-3. Opens an authenticated websocket connection
-4. Sends two turns on the same thread, both involving tool calls
-5. Fails if any reply is not the expected final text
+2. Requests a short-lived proxy token from `https://openai-proxy-denieler.fly.dev/auth/token`
+3. Signs that auth request with `OPENAI_PROXY_HMAC_SECRET`
+4. Verifies the returned JWT locally with `OPENAI_PROXY_TOKEN_SECRET`
+5. Starts `codex app-server` inside the sandbox using that token
+6. Opens an authenticated websocket connection
+7. Sends two turns on the same thread, both involving tool calls
+8. Fails if any reply is not the expected final text
+
+For the smoke test, Doppler must provide:
+
+- `E2B_API_KEY`
+- `E2B_TEMPLATE_ID`
+- `OPENAI_PROXY_HMAC_SECRET`
+- `OPENAI_PROXY_TOKEN_SECRET`
+
+The proxy app listens on internal port `8080`, but Fly exposes it publicly on standard HTTPS, so the smoke test uses the public URL without `:8080`.
 
 ### Create a ready sandbox in code
 
@@ -49,7 +61,7 @@ import { createReadyCodexSandbox } from "@denieler/e2b-codex";
 const ready = await createReadyCodexSandbox({
   e2bApiKey: process.env.E2B_API_KEY!,
   templateId: process.env.E2B_TEMPLATE_ID!,
-  openAiApiKey: process.env.OPENAI_API_KEY!,
+  openAiProxyToken: process.env.OPENAI_PROXY_TOKEN!,
   userId: "user-123",
 });
 ```
@@ -69,12 +81,15 @@ import { connectCodexSandbox } from "@denieler/e2b-codex";
 const ready = await connectCodexSandbox({
   e2bApiKey: process.env.E2B_API_KEY!,
   sandboxId: "sandbox-id",
-  openAiApiKey: process.env.OPENAI_API_KEY!,
+  openAiProxyToken: process.env.OPENAI_PROXY_TOKEN!,
   userId: "user-123",
 });
 ```
 
 Use this when you already persisted `sandboxId` and want to reconnect to the same sandbox instead of creating a new one.
+
+This is also the path to use when a user rejoins later with a fresh `OPENAI_PROXY_TOKEN`.
+On reconnect, the runtime rewrites the Codex config and restarts `codex app-server` so the newly supplied proxy token is used.
 
 ### Connect to Codex over websocket
 
@@ -132,7 +147,7 @@ import { createReadyCodexSandbox, runPrompt } from "@denieler/e2b-codex";
 const sandbox = await createReadyCodexSandbox({
   e2bApiKey: process.env.E2B_API_KEY!,
   templateId: process.env.E2B_TEMPLATE_ID!,
-  openAiApiKey: process.env.OPENAI_API_KEY!,
+  openAiProxyToken: process.env.OPENAI_PROXY_TOKEN!,
   userId: "user-123",
 });
 
@@ -168,6 +183,8 @@ The build prints:
 
 Use the printed template id as `E2B_TEMPLATE_ID` for runtime use.
 
+If you keep using an older template, the runtime still writes the same Codex provider config at sandbox startup. Rebuilding the template just bakes that config in ahead of time.
+
 ### What the build does
 
 The template build:
@@ -176,6 +193,7 @@ The template build:
 - installs a small set of system packages
 - downloads the Codex Linux binary from OpenAI GitHub releases
 - installs it to `/usr/local/bin/codex`
+- writes `/root/.codex/config.toml` with the `custom_openai_proxy` provider
 
 Codex is installed at template build time, not at sandbox startup.
 
@@ -200,15 +218,18 @@ E2B_TEMPLATE_ID=<template-id> doppler run -- npm run test:smoke
 
 The smoke test covers both of these paths:
 
+- proxy auth token issuance with signed `/auth/token` requests and local JWT verification
 - direct websocket usage with `thread/start` plus two `turn/start` calls on the same thread, both involving tool calls
 
 ## Runtime Design
 
 At sandbox startup, the runtime:
 
-- logs Codex into the sandbox using `OPENAI_API_KEY`
+- injects `OPENAI_PROXY_TOKEN` into the sandbox environment
+- writes `~/.codex/config.toml` selecting the `custom_openai_proxy` provider at `https://openai-proxy-denieler.fly.dev/v1`
 - writes a websocket capability token into the sandbox
 - starts `codex app-server` as an E2B background process
+- restarts `codex app-server` on sandbox reconnect so a newly supplied `OPENAI_PROXY_TOKEN` takes effect
 - waits for it to stay alive
 - opens the websocket connection
 
@@ -218,6 +239,7 @@ At sandbox startup, the runtime:
 
 - The template is shared. Sandboxes are ephemeral.
 - Secrets are injected when the sandbox is created.
+- `OPENAI_API_KEY` is not used by this package.
 - The websocket token file is written to `/tmp/e2b-codex-ws-token`.
 - The example uses `approvalPolicy: "never"` and `workspaceWrite`.
 

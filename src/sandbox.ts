@@ -2,11 +2,17 @@ import { createHash } from "node:crypto";
 
 import { Sandbox } from "e2b";
 
+import {
+  CODEX_CONFIG_PATH,
+  CODEX_HOME_DIR,
+  CODEX_PROXY_TOKEN_ENV_VAR,
+  renderCodexConfig,
+} from "./codex-config.js";
 import { CodexAppServerClient } from "./codex-app-server.js";
 
 export type CodexSandboxOptions = {
   e2bApiKey: string;
-  openAiApiKey: string;
+  openAiProxyToken: string;
   userId: string;
   timeoutMs?: number;
   allowInternetAccess?: boolean;
@@ -49,7 +55,9 @@ function getTokenFilePath() {
 
 async function ensureAppServerRunning(
   sandbox: Sandbox,
-  options: Pick<CodexSandboxOptions, "openAiApiKey" | "port" | "workspaceRoot" | "userId">,
+  options: Pick<CodexSandboxOptions, "openAiProxyToken" | "port" | "workspaceRoot" | "userId"> & {
+    restartIfRunning?: boolean;
+  },
 ) {
   const port = options.port ?? 4571;
   const workspaceRoot = options.workspaceRoot ?? "/workspace";
@@ -59,22 +67,10 @@ async function ensureAppServerRunning(
 
   await sandbox.files.write(tokenFile, token);
 
-  await sandbox.commands.run(`mkdir -p ${workspaceRoot}`, {
+  await sandbox.commands.run(`mkdir -p ${CODEX_HOME_DIR} ${workspaceRoot}`, {
     timeoutMs: 10_000,
   });
-
-  // Codex CLI 0.118.0 loses the auth header when it falls back from websocket
-  // streaming to HTTPS while using API-key auth directly. Logging in once inside
-  // the sandbox makes app-server use the stored auth path instead. Feed the key
-  // over stdin so it does not persist as a sandbox-wide env var or process arg.
-  const login = await sandbox.commands.run(`codex login --with-api-key`, {
-    background: true,
-    stdin: true,
-    timeoutMs: 20_000,
-  });
-  await sandbox.commands.sendStdin(login.pid, `${options.openAiApiKey}\n`);
-  await sandbox.commands.closeStdin(login.pid);
-  await login.wait();
+  await sandbox.files.write(CODEX_CONFIG_PATH, renderCodexConfig());
 
   const existing = await sandbox.commands.run(
     `bash -lc 'ps -ef | grep "${processPattern}" || true'`,
@@ -83,13 +79,26 @@ async function ensureAppServerRunning(
     },
   );
   if (existing.stdout.trim()) {
-    return;
+    if (!options.restartIfRunning) {
+      return;
+    }
+
+    await sandbox.commands.run(
+      `bash -lc 'pkill -f "codex app-server --listen ws://0.0.0.0:${port}" || true'`,
+      {
+        timeoutMs: 10_000,
+      },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
 
   await sandbox.commands.run(
     `codex app-server --listen ws://0.0.0.0:${port} --ws-auth capability-token --ws-token-file ${tokenFile}`,
     {
       background: true,
+      envs: {
+        [CODEX_PROXY_TOKEN_ENV_VAR]: options.openAiProxyToken,
+      },
       timeoutMs: 15_000,
     },
   );
@@ -118,6 +127,9 @@ export async function createReadyCodexSandbox(
     apiKey: options.e2bApiKey,
     timeoutMs: options.timeoutMs ?? 300_000,
     allowInternetAccess: options.allowInternetAccess ?? true,
+    envs: {
+      [CODEX_PROXY_TOKEN_ENV_VAR]: options.openAiProxyToken,
+    },
     metadata: {
       product: "e2b-codex",
       userId: options.userId,
@@ -126,8 +138,9 @@ export async function createReadyCodexSandbox(
   });
 
   await ensureAppServerRunning(sandbox, {
-    openAiApiKey: options.openAiApiKey,
+    openAiProxyToken: options.openAiProxyToken,
     port,
+    restartIfRunning: false,
     workspaceRoot,
     userId: options.userId,
   });
@@ -157,8 +170,9 @@ export async function connectCodexSandbox(
   }
 
   await ensureAppServerRunning(sandbox, {
-    openAiApiKey: options.openAiApiKey,
+    openAiProxyToken: options.openAiProxyToken,
     port,
+    restartIfRunning: true,
     workspaceRoot,
     userId: options.userId,
   });

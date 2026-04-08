@@ -1,5 +1,11 @@
 import { Template } from "e2b";
 
+import {
+  CODEX_CONFIG_PATH,
+  CODEX_HOME_DIR,
+  renderCodexConfig,
+} from "./codex-config.js";
+
 const codexInstallScript = `
 set -eux
 ARCH="$(uname -m)"
@@ -36,6 +42,13 @@ install -m 0755 "$BIN_PATH" /usr/local/bin/codex
 codex --version
 `;
 
+const codexConfigScript = `
+set -eux
+mkdir -p "${CODEX_HOME_DIR}"
+cat > "${CODEX_CONFIG_PATH}" <<'EOF'
+${renderCodexConfig()}EOF
+`;
+
 export const template = Template()
   .fromTemplate("base")
   .setUser("root")
@@ -44,4 +57,5 @@ export const template = Template()
   })
   .makeDir("/workspace", { mode: 0o755 })
   .runCmd(codexInstallScript)
+  .runCmd(codexConfigScript)
   .runCmd("sh -lc 'command -v codex && codex --version'");
