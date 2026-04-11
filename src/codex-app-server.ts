@@ -17,6 +17,8 @@ type NotificationHandler = (
   message: Required<Pick<JsonRpcMessage, "method">> & JsonRpcMessage,
 ) => void;
 
+type CloseHandler = (error: Error) => void;
+
 export class CodexAppServerClient {
   private readonly socket: WebSocket;
   private readonly pending = new Map<
@@ -27,6 +29,7 @@ export class CodexAppServerClient {
     }
   >();
   private readonly notificationHandlers = new Set<NotificationHandler>();
+  private readonly closeHandlers = new Set<CloseHandler>();
   private nextId = 0;
 
   private constructor(socket: WebSocket) {
@@ -35,10 +38,13 @@ export class CodexAppServerClient {
       this.handleIncomingMessage(typeof data === "string" ? data : data.toString("utf8"));
     });
     this.socket.on("error", (error) => {
+      this.emitClose(error instanceof Error ? error : new Error(String(error)));
       this.rejectAllPending(error);
     });
     this.socket.on("close", () => {
-      this.rejectAllPending(new Error("Codex websocket connection closed."));
+      const error = new Error("Codex websocket connection closed.");
+      this.emitClose(error);
+      this.rejectAllPending(error);
     });
   }
 
@@ -62,6 +68,11 @@ export class CodexAppServerClient {
   onNotification(handler: NotificationHandler) {
     this.notificationHandlers.add(handler);
     return () => this.notificationHandlers.delete(handler);
+  }
+
+  onClose(handler: CloseHandler) {
+    this.closeHandlers.add(handler);
+    return () => this.closeHandlers.delete(handler);
   }
 
   async initialize(clientInfo?: {
@@ -133,5 +144,11 @@ export class CodexAppServerClient {
       pending.reject(error);
     }
     this.pending.clear();
+  }
+
+  private emitClose(error: Error) {
+    for (const handler of this.closeHandlers) {
+      handler(error);
+    }
   }
 }

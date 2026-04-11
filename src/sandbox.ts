@@ -63,7 +63,9 @@ async function ensureAppServerRunning(
   const workspaceRoot = options.workspaceRoot ?? "/workspace";
   const tokenFile = getTokenFilePath();
   const token = createAppServerToken(options.userId);
-  const processPattern = `[c]odex app-server --listen ws://0.0.0.0:${port}`;
+  const processPattern =
+    `[c]odex --dangerously-bypass-approvals-and-sandbox app-server --listen ws://0.0.0.0:${port}`;
+  const appServerLogFile = "/tmp/e2b-codex-app-server.log";
 
   await sandbox.files.write(tokenFile, token);
 
@@ -84,7 +86,7 @@ async function ensureAppServerRunning(
     }
 
     await sandbox.commands.run(
-      `bash -lc 'pkill -f "codex app-server --listen ws://0.0.0.0:${port}" || true'`,
+      `bash -lc 'pkill -f "codex --dangerously-bypass-approvals-and-sandbox app-server --listen ws://0.0.0.0:${port}" || true'`,
       {
         timeoutMs: 10_000,
       },
@@ -93,7 +95,13 @@ async function ensureAppServerRunning(
   }
 
   await sandbox.commands.run(
-    `codex app-server --listen ws://0.0.0.0:${port} --ws-auth capability-token --ws-token-file ${tokenFile}`,
+    [
+      "bash -lc",
+      `'mkdir -p /tmp && cd ${workspaceRoot} && `,
+      `codex --dangerously-bypass-approvals-and-sandbox app-server --listen ws://0.0.0.0:${port} `,
+      `--ws-auth capability-token --ws-token-file ${tokenFile} `,
+      `>> ${appServerLogFile} 2>&1'`,
+    ].join(""),
     {
       background: true,
       envs: {
@@ -218,12 +226,14 @@ export async function runPrompt(options: {
   model?: string;
   effort?: "low" | "medium" | "high" | "xhigh";
   summary?: "auto" | "concise" | "detailed";
+  turnTimeoutMs?: number;
 }) {
   const client = await connectCodexClient(options.sandbox);
   const cwd = options.cwd ?? options.sandbox.workspaceRoot;
   const model = options.model ?? "gpt-5.3-codex";
   const effort = options.effort ?? "medium";
   const summary = options.summary ?? "concise";
+  const turnTimeoutMs = options.turnTimeoutMs ?? 300_000;
 
   try {
     const started = await client.request("thread/start", {
@@ -240,6 +250,20 @@ export async function runPrompt(options: {
     let lastAgentReply = "";
 
     await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const finish = (callback: () => void) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(turnTimeout);
+        unsubscribe();
+        unsubscribeClose();
+        callback();
+      };
+      const turnTimeout = setTimeout(() => {
+        finish(() => reject(new Error(`Codex turn timed out after ${turnTimeoutMs}ms.`)));
+      }, turnTimeoutMs);
       const unsubscribe = client.onNotification((message) => {
         const params = (message.params ?? {}) as Record<string, unknown>;
 
@@ -283,27 +307,28 @@ export async function runPrompt(options: {
           if (willRetry) {
             return;
           }
-          unsubscribe();
-          reject(new Error(errorMessage));
+          finish(() => reject(new Error(errorMessage)));
           return;
         }
 
         if (message.method === "turn/completed") {
-          unsubscribe();
           const turn = (params.turn ?? {}) as Record<string, unknown>;
           if (String(turn.status ?? "") === "failed") {
-            reject(
+            finish(() => reject(
               new Error(
                 String(
                   ((turn.error as Record<string, unknown> | undefined)?.message as string | undefined) ??
                     "Codex turn failed.",
                 ),
               ),
-            );
+            ));
             return;
           }
-          resolve();
+          finish(() => resolve());
         }
+      });
+      const unsubscribeClose = client.onClose((error) => {
+        finish(() => reject(error));
       });
 
       client.request("turn/start", {
@@ -320,8 +345,7 @@ export async function runPrompt(options: {
         },
         summary,
       }).catch((error) => {
-        unsubscribe();
-        reject(error);
+        finish(() => reject(error));
       });
     });
 
