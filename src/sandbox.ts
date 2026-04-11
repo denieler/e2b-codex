@@ -66,6 +66,7 @@ async function ensureAppServerRunning(
   const processPattern =
     `[c]odex --dangerously-bypass-approvals-and-sandbox app-server --listen ws://0.0.0.0:${port}`;
   const appServerLogFile = "/tmp/e2b-codex-app-server.log";
+  const appServerCommand = `bash -lc 'mkdir -p /tmp && cd ${workspaceRoot} && exec codex --dangerously-bypass-approvals-and-sandbox app-server --listen ws://0.0.0.0:${port} --ws-auth capability-token --ws-token-file ${tokenFile} >> ${appServerLogFile} 2>&1'`;
 
   await sandbox.files.write(tokenFile, token);
 
@@ -95,13 +96,7 @@ async function ensureAppServerRunning(
   }
 
   await sandbox.commands.run(
-    [
-      "bash -lc",
-      `'mkdir -p /tmp && cd ${workspaceRoot} && `,
-      `codex --dangerously-bypass-approvals-and-sandbox app-server --listen ws://0.0.0.0:${port} `,
-      `--ws-auth capability-token --ws-token-file ${tokenFile} `,
-      `>> ${appServerLogFile} 2>&1'`,
-    ].join(""),
+    appServerCommand,
     {
       background: true,
       envs: {

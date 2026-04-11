@@ -1,6 +1,6 @@
 {
   "name": "@denieler/e2b-codex",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Build and use E2B sandboxes with Codex preinstalled and codex app-server ready over websocket.",
   "license": "MIT",
   "type": "module",
