@@ -52,7 +52,7 @@ ${renderCodexConfig()}EOF
 export const template = Template()
   .fromTemplate("base")
   .setUser("root")
-  .aptInstall(["ca-certificates", "curl", "git", "tar", "unzip"], {
+  .aptInstall(["ca-certificates", "curl", "git", "ripgrep", "tar", "unzip"], {
     noInstallRecommends: true,
   })
   .makeDir("/workspace", { mode: 0o755 })
