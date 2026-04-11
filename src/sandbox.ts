@@ -66,7 +66,7 @@ async function ensureAppServerRunning(
   const processPattern =
     `[c]odex --dangerously-bypass-approvals-and-sandbox app-server --listen ws://0.0.0.0:${port}`;
   const appServerLogFile = "/tmp/e2b-codex-app-server.log";
-  const appServerCommand = `bash -lc 'mkdir -p /tmp && cd ${workspaceRoot} && exec codex --dangerously-bypass-approvals-and-sandbox app-server --listen ws://0.0.0.0:${port} --ws-auth capability-token --ws-token-file ${tokenFile} >> ${appServerLogFile} 2>&1'`;
+  const appServerCommand = `bash -lc 'mkdir -p /tmp && cd ${workspaceRoot} && codex --dangerously-bypass-approvals-and-sandbox app-server --listen ws://0.0.0.0:${port} --ws-auth capability-token --ws-token-file ${tokenFile} >> ${appServerLogFile} 2>&1; status=$?; printf "__CODEX_APP_SERVER_EXIT__ status=%s time=%s\\n" "$status" "$(date -Iseconds)" >> ${appServerLogFile}; exit "$status"'`;
 
   await sandbox.files.write(tokenFile, token);
 
@@ -334,8 +334,7 @@ export async function runPrompt(options: {
         effort,
         approvalPolicy: "never",
         sandboxPolicy: {
-          type: "workspaceWrite",
-          writableRoots: [cwd],
+          type: "dangerFullAccess",
           networkAccess: true,
         },
         summary,
